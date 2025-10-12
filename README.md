@@ -1,16 +1,29 @@
-# learning_go
+# LearningGO
 
-A new Flutter project.
+**LearningGO** 是一款結合人工智慧與學習管理的多功能 APP，整合「語音轉文字」、「影像強化」、「錄音管理」與「學習追蹤」等功能，幫助使用者更有效率地整理與吸收學習內容。  
+本專案以 **Flutter** 開發，結合 **Whisper / ONNX / TFLite** 模型，採用模組化設計，方便後續雲端同步與功能擴充。
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 功能說明
 
-A few resources to get you started if this is your first Flutter project:
+### 首頁（Home Page）
+- 以圓環進度條顯示每日學習時間比例。  
+- 管理待辦事項與作業清單。  
+- 支援設定學習目標時間（內建 iOS 風格時間選擇器）。  
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 語音頁面（Voice Page）
+- 以 `MediaService` 控制錄音開始與停止。  
+- 使用 `STTService`（Whisper 模型）即時轉文字。  
+- 支援儲存、重新命名、刪除音訊檔。  
+- 轉錄文字可本地保存，方便筆記整理。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 影像工具頁面（Image Tool Page）
+- 可從相簿或相機載入圖片。  
+- 使用 ONNX / TFLite 模型進行影像強化或辨識。  
+- 儲存強化後的圖片並**同步保存原始檔**。  
+- 可在「影像圖庫」中瀏覽所有處理結果。
+
+### 通知系統（Notification Service）
+- 透過 `flutter_local_notifications` 實現學習提醒與任務排程。  
+- 可設定每日提醒、目標達成提示等通知。  
