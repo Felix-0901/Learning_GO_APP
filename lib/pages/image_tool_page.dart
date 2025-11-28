@@ -51,7 +51,6 @@ class _ImageToolPageState extends State<ImageToolPage> {
   String currentModel = 'assets/models/Medium.onnx';
   String? _lastOnnxModel; // 記錄上一個已載入的 ONNX，避免切換不重載
 
-  File? lastProcessed;
   bool processing = false;
 
   bool get _useOnnx => currentModel.toLowerCase().endsWith('.onnx');
@@ -65,18 +64,16 @@ class _ImageToolPageState extends State<ImageToolPage> {
     if (result != null) {
       app.setCurrentImage(result);   // ✅ 存到 AppState
       setState(() {                  // 僅維持 processed 標記邏輯
-        lastProcessed = null;
+        app.markProcessed(false);
       });
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
-    context.watch<AppState>();
-    final isProcessed = lastProcessed != null;
-
     final app = context.watch<AppState>();
-    final current = app.currentImage; // 以 AppState 作為單一真相來源
+    final isProcessed = app.isImageProcessed;
+    final current = app.currentImage;
 
 
     return Scaffold(
@@ -235,7 +232,7 @@ class _ImageToolPageState extends State<ImageToolPage> {
                                   app.setCurrentImage(processedFile);
 
                                   setState(() {
-                                    lastProcessed = processedFile; // 本頁標記
+                                    app.markProcessed(true);    // 本頁標記
                                   });
 
                                   // ⭐ 存入 AppState 圖庫（原本就有）
@@ -273,7 +270,7 @@ class _ImageToolPageState extends State<ImageToolPage> {
                             final f = await media.captureFromCamera();
                             if (f != null) {
                               app.setCurrentImage(f);          // ✅ 存到 AppState
-                              setState(() => lastProcessed = null);
+                              app.markProcessed(false);
                             }
                           },
 
@@ -300,7 +297,7 @@ class _ImageToolPageState extends State<ImageToolPage> {
                             final f = await media.pickFromGallery();
                             if (f != null) {
                                 app.setCurrentImage(f);        // ✅ 存到 AppState
-                                setState(() => lastProcessed = null);
+                                app.markProcessed(false);
                             }
                           },
                     icon: const Icon(Icons.perm_media),
@@ -318,13 +315,17 @@ class _ImageToolPageState extends State<ImageToolPage> {
 
   void _clearCurrentFromView() {
     context.read<AppState>().setCurrentImage(null); // ✅ 清 AppState
-    setState(() => lastProcessed = null);
+    context.read<AppState>().markProcessed(false);
   }
 
 
   Future<void> _downloadProcessed() async {
-    if (lastProcessed == null) return;
-    final ok = await MediaService().saveProcessedToDevice(lastProcessed!, album: 'LearningGO');
+    final app = context.read<AppState>();
+    final img = app.currentImage;
+    if (!app.isImageProcessed || img == null) return;
+
+    final ok = await MediaService().saveProcessedToDevice(img, album: 'LearningGO');
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(ok ? 'Saved to Photos' : 'Save failed')),
     );

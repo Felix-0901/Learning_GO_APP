@@ -380,4 +380,12 @@ class AppState extends ChangeNotifier {
       await _scheduleHomeworkReminderIfAny(hw);
     }
   }
+
+  // 模型不重複跑
+  bool isImageProcessed = false;
+
+  void markProcessed(bool v) {
+    isImageProcessed = v;
+    notifyListeners();
+  }
 }
