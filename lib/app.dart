@@ -134,9 +134,9 @@ class _LearningGOAppState extends State<LearningGOApp> {
               label: 'Image Tool',
             ),
             NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Setting',
+              icon: Icon(Icons.insert_chart_outlined),
+              selectedIcon: Icon(Icons.insert_chart),
+              label: 'Charts',
             ),
           ],
         ),
