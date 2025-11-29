@@ -582,7 +582,8 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                       return;
                     }
 
-                    final colorHex = color.toARGB32()
+                    final colorHex = color
+                        .toARGB32()
                         .toRadixString(16)
                         .padLeft(8, '0');
 

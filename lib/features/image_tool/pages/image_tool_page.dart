@@ -188,7 +188,9 @@ class _ImageToolPageState extends State<ImageToolPage> {
                           ? null
                           : () async {
                               setState(() => processing = true);
-                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
+                              );
                               try {
                                 final ms = context.read<MediaState>();
                                 final src = ms.currentImage;
@@ -225,10 +227,10 @@ class _ImageToolPageState extends State<ImageToolPage> {
                                     .saveAsProcessed(tmpFile);
 
                                 if (!mounted) return;
-                                
+
                                 ms.setCurrentImage(processedFile);
                                 ms.markProcessed(true);
-                                
+
                                 await ms.addImage(
                                   name: processedFile.uri.pathSegments.last,
                                   path: processedFile.path,

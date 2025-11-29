@@ -144,7 +144,9 @@ class HomeworkState extends ChangeNotifier {
     if (hw.reminderAt!.isBefore(DateTime.now())) return;
 
     await NotificationService().scheduleAt(
-      id: IdUtils.hashId('hwr-${hw.id}-${hw.reminderAt!.millisecondsSinceEpoch}'),
+      id: IdUtils.hashId(
+        'hwr-${hw.id}-${hw.reminderAt!.millisecondsSinceEpoch}',
+      ),
       title: 'Homework reminder',
       body: hw.title,
       when: hw.reminderAt!,
