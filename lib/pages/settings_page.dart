@@ -16,6 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _showToday = true;
   bool _showWeek = true;
   bool _showMonth = true;
+  bool _showDistribution = true;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +39,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(12),
         children: [
           if (_showToday) _buildTodayTimelineChart(app),
           if (_showWeek) _buildWeekChart(app),
           if (_showMonth) _buildMonthChart(app),
+          if (_showDistribution) _buildDistributionTable(app),
         ],
       ),
     );
@@ -52,33 +53,70 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildRightMenu(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
+    const blueThumb = Color(0xFF007AFF);      // 藍色圓點
+    const blueTrack = Color(0x33007AFF);      // 淡藍色背景
+    final lightGrayTrack = Colors.grey.shade300;  // OFF 狀態淺灰背景
+
     return Drawer(
       width: width * 0.6,
       backgroundColor: Colors.white,
       elevation: 16,
       child: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           children: [
             const Text(
               'Charts Menu',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const Divider(),
             SwitchListTile(
-              title: const Text("Today's Study (Timeline)"),
+              title: const Text(
+                "Today",
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
               value: _showToday,
+              activeTrackColor: blueThumb,
+              inactiveTrackColor: lightGrayTrack,
               onChanged: (v) => setState(() => _showToday = v),
             ),
             SwitchListTile(
-              title: const Text("This Week's Study"),
+              title: const Text(
+                "This Week",
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
               value: _showWeek,
+              activeTrackColor: blueThumb,
+              inactiveTrackColor: lightGrayTrack,
               onChanged: (v) => setState(() => _showWeek = v),
             ),
             SwitchListTile(
-              title: const Text("This Month's Study"),
+              title: const Text(
+                "This Month",
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
               value: _showMonth,
+              activeTrackColor: blueThumb,
+              inactiveTrackColor: lightGrayTrack,
               onChanged: (v) => setState(() => _showMonth = v),
+            ),
+            SwitchListTile(
+              title: const Text(
+                "Distribution",
+                style: TextStyle(
+                  fontSize: 16,
+                ),
+              ),
+              value: _showDistribution,
+              activeTrackColor: blueThumb,
+              inactiveTrackColor: lightGrayTrack,
+              onChanged: (v) => setState(() => _showDistribution = v),
             ),
           ],
         ),
@@ -121,6 +159,28 @@ class _SettingsPageState extends State<SettingsPage> {
       if (v > m) m = v;
     }
     return m;
+  }
+
+  // =========================================================
+  // 格式化分鐘 => min/hr/day
+  // =========================================================
+  String _formatTime(int seconds, {bool big = false}) {
+    final mins = seconds / 60.0;
+    if (mins < 60) {
+      return big
+          ? "${mins.toStringAsFixed(0)} min"
+          : "${mins.toStringAsFixed(0)}m";
+    }
+    final hrs = mins / 60.0;
+    if (hrs < 24) {
+      return big
+          ? "${hrs.toStringAsFixed(1)} hr"
+          : "${hrs.toStringAsFixed(1)}h";
+    }
+    final days = hrs / 24.0;
+    return big
+        ? "${days.toStringAsFixed(1)} day"
+        : "${days.toStringAsFixed(1)}d";
   }
 
   // =========================================================
@@ -172,7 +232,26 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _bigNumber(todaySecs),
+              // 大字時間
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: _formatTime(todaySecs, big: true).split(' ')[0],
+                      style: const TextStyle(
+                          fontSize: 32,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    TextSpan(
+                      text: " ${_formatTime(todaySecs, big: true).split(' ')[1]}",
+                      style: const TextStyle(
+                          fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+              
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Text(
@@ -220,45 +299,6 @@ class _SettingsPageState extends State<SettingsPage> {
   // =========================================================
   // 週 + 月 長條圖（不變）
   // =========================================================
-
-  // 🔹 大字數字顯示：分鐘 / 小時 自動切換
-  Widget _bigNumber(int seconds) {
-    final mins = seconds / 60.0;
-    if (mins < 60) {
-      return RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: mins.toStringAsFixed(0),
-              style: const TextStyle(
-                  fontSize: 32, color: Colors.black, fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(
-              text: " min",
-              style: TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ],
-        ),
-      );
-    } else {
-      final hrs = mins / 60.0;
-      return RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: hrs.toStringAsFixed(1),
-              style: const TextStyle(
-                  fontSize: 32, color: Colors.black, fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(
-              text: " hr",
-              style: TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ],
-        ),
-      );
-    }
-  }
 
   // =========================================================
   // Weekly Chart（不變）
@@ -377,7 +417,7 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _bigNumber(thisWeekSecs),
+              _bigText(thisWeekSecs),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Text(
@@ -395,6 +435,29 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+
+  Widget _bigText(int secs) {
+    final formatted = _formatTime(secs, big: true).split(' ');
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: formatted[0],
+            style: const TextStyle(
+                fontSize: 32,
+                color: Colors.black,
+                fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: " ${formatted[1]}",
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   // =========================================================
   // 每月圖表（不變）
@@ -527,7 +590,7 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _bigNumber(thisMonthSecs),
+              _bigText(thisMonthSecs),
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Text(
@@ -545,6 +608,124 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+
+  // =========================================================
+  // ⭐⭐ Study Time Distribution: 新增報表（含分隔線版）⭐⭐
+  // =========================================================
+  Widget _buildDistributionTable(AppState app) {
+    final now = DateTime.now();
+
+    // 今日所有紀錄
+    final todayKey = _dateKey(now);
+    List<Map<String, dynamic>> sessions = [];
+
+    for (final rec in app.timerDaily) {
+      if (rec['date'] == todayKey && rec['sessions'] is List) {
+        sessions = rec['sessions'].cast<Map<String, dynamic>>();
+      }
+    }
+
+    // 四大時段秒數
+    int morning = 0;
+    int afternoon = 0;
+    int evening = 0;
+    int midnight = 0;
+
+    for (final s in sessions) {
+      final start = _parseMinutes(s['start']);
+      final end = _parseMinutes(s['end']);
+      if (end <= start) continue;
+
+      for (int m = start; m < end; m++) {
+        if (m >= 360 && m <= 779) {
+          morning += 60;
+        } else if (m >= 780 && m <= 1139) {
+          afternoon += 60;
+        } else if (m >= 1140 && m <= 1439) {
+          evening += 60;
+        } else {
+          midnight += 60;
+        }
+      }
+    }
+
+    final total = morning + afternoon + evening + midnight;
+
+    double pct(int v) {
+      if (total == 0) return 0;
+      return v * 100 / total;
+    }
+
+    // ⭐ 這裡加入「下方分隔線」
+    Widget row(String label, int secs, {bool showDivider = true}) {
+      final p = pct(secs);
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              children: [
+                // 左欄：標題
+                SizedBox(
+                  width: 130,
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+
+                // 中欄：時間
+                Expanded(
+                  child: Text(
+                    _formatTime(secs, big: false),
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ),
+
+                // 右欄：百分比
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    "${p.toStringAsFixed(1)}%",
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: p >= 50 ? Colors.green : Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ⭐ 分隔線（每列底部的淺灰色 line）
+          if (showDivider)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              height: 1,
+              color: const Color.fromARGB(255, 211, 211, 211), // 淺灰色
+            ),
+        ],
+      );
+    }
+
+    return SectionCard(
+      title: "Study Time Distribution",
+      tint: AppColors.softGray,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          row("Morning", morning),
+          row("Afternoon", afternoon),
+          row("Evening", evening),
+          row("Midnight", midnight, showDivider: false), // 最後一列不畫線
+        ],
+      ),
+    );
+  }
+
 }
 
 // =========================================================
