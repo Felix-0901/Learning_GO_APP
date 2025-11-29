@@ -592,8 +592,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildDistributionTable(TimerState timer) {
     final now = DateTime.now();
 
-    // 今日所有時段
-    final sessions = timer.sessionsForDate(now);
+    // 取得所有歷史紀錄中的所有 sessions
+    final List<StudySession> sessions = [];
+
+    for (final record in timer.allRecords) {
+      sessions.addAll(record.sessions);
+    }
 
     // 四大時段秒數
     int morning = 0;
