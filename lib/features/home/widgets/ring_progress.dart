@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import '../../../shared/utils/app_colors.dart';
 
 class RingProgress extends StatelessWidget {
   final double ratio; // 0..1

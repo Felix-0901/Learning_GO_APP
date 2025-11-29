@@ -1,8 +1,8 @@
-// lib/pages/audio_library_page.dart
+// 讓使用者瀏覽過往錄好的音檔（或手動添加的）並播放
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
+import '../../../shared/services/app_state.dart';
 
 const double _kFieldRadius = 12;
 
@@ -252,9 +252,11 @@ class AudioLibraryPage extends StatelessWidget {
                               // 成功：不顯示任何提示
                             } catch (e) {
                               // 只有失敗才提示
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Delete failed')),
-                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Delete failed')),
+                                );
+                              }
                             }
                           },
                         ),

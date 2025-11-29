@@ -63,8 +63,6 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> images = []; // {id, name, path, createdAt}
 
   // === helpers ===
-  static String _yyyyMMdd(DateTime d) =>
-      DateTime(d.year, d.month, d.day).toIso8601String().substring(0, 10);
 
   static bool _isSameDayIso(String iso, DateTime day) {
     final d = DateTime.parse(iso);

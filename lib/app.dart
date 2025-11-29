@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'pages/home_page.dart';
-import 'pages/voice_page.dart';
-import 'pages/image_tool_page.dart';
-import 'pages/settings_page.dart';
+import 'features/home/pages/home_page.dart';
+import 'features/voice/pages/voice_page.dart';
+import 'features/image_tool/pages/image_tool_page.dart';
+import 'features/settings/pages/settings_page.dart';
 
 class LearningGOApp extends StatefulWidget {
   const LearningGOApp({super.key});
@@ -72,7 +72,7 @@ class _LearningGOAppState extends State<LearningGOApp> {
             if (states.contains(WidgetState.selected)) {
               return const Color(0xFF007AFF); // 選中「今天」底色
             }
-            return const Color(0xFF007AFF).withOpacity(0.15); // 未選中「今天」底色
+            return const Color(0xFF007AFF).withValues(alpha: 0.15); // 未選中「今天」底色
           }),
           // 如果不想「今天」在選中時還有外框，可改成 BorderSide.none
           // todayBorder: BorderSide.none,

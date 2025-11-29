@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
-import '../utils/format.dart';
-import '../widgets/ios_time_picker.dart';
+import '../../../shared/services/app_state.dart';
+import '../../../shared/utils/format.dart';
+import '../../../shared/widgets/ios_time_picker.dart';
 
 // 共用：欄位圓角（和按鈕一致）
 const double _kFieldRadius = 12;
@@ -89,7 +89,7 @@ Widget _colorStrip({
       child: ListView(
         scrollDirection: Axis.horizontal, // 水平可滑動
         children: options.map((c) {
-          final isSelected = c.value == selected.value;
+          final isSelected = c.toARGB32() == selected.toARGB32();
           return GestureDetector(
             onTap: () => onChanged(c),
             child: AnimatedContainer(
@@ -336,7 +336,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
       reminderAt = e['reminderAt'] != null
           ? DateTime.tryParse(e['reminderAt'])
           : null;
-      color = Color(e['color'] ?? Colors.orange.value);
+      color = Color(e['color'] ?? Colors.orange.toARGB32());
     }
   }
 
@@ -503,6 +503,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                           if (d == null) return; // 取消就不改 state
 
                           // 再挑時間
+                          if (!context.mounted) return;
                           final t = await pickTime(context, TimeOfDay.now());
                           if (t == null) return; // 取消就不改 state
 
@@ -609,7 +610,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                       'due': due.toIso8601String(),
                       'reminderType': reminderType,
                       'reminderAt': reminderAt?.toIso8601String(),
-                      'color': color.value,
+                      'color': color.toARGB32(),
                       'id': widget.existing?['id'],
                       'doneAt': widget.existing?['doneAt'],
                     };

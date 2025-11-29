@@ -1,11 +1,11 @@
 // lib/pages/image_library_page.dart
-// All UI strings/identifiers in English; comments in Chinese。
-
+// 瀏覽在 MediaService 管理下的「Originals」與「Processed」照片
+// 提供簡易刪除介面（等之後追加播放 / export功能）
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
-import '../services/media_service.dart';
+import '../../../shared/services/app_state.dart';
+import '../../../shared/services/media_service.dart';
 
 class ImageLibraryPage extends StatefulWidget {
   const ImageLibraryPage({super.key});

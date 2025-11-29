@@ -1,13 +1,13 @@
 // lib/pages/image_tool_page.dart
-// All UI strings/identifiers in English; comments in 中文。
+// NOTE: All strings/identifiers in English; comments in Chinese.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/media_service.dart';
-import '../services/app_state.dart';
+import '../../../shared/services/media_service.dart';
+import '../../../shared/services/app_state.dart';
 import 'image_library_page.dart';
-import '../services/onnx_service.dart'; // 只保留 ONNX
+import '../../../shared/services/onnx_service.dart'; // 只保留 ONNX
 import 'dart:async'; // for TimeoutException
 
 InputDecoration _decoration({
@@ -51,11 +51,8 @@ class _ImageToolPageState extends State<ImageToolPage> {
 
   // 預設選第一個 ONNX；只保留 .onnx 選項
   String currentModel = 'assets/models/Medium.onnx';
-  String? _lastOnnxModel; // 記錄上一個已載入的 ONNX，避免切換不重載
 
   bool processing = false;
-
-  bool get _useOnnx => currentModel.toLowerCase().endsWith('.onnx');
 
   Future<void> _openLibrary() async {
     final app = context.read<AppState>();
@@ -267,11 +264,13 @@ class _ImageToolPageState extends State<ImageToolPage> {
                                     app.markProcessed(true); // 本頁標記
                                   });
 
-                                  // ⭐ 存入 AppState 圖庫（原本就有）
-                                  context.read<AppState>().addImage(
+                                 if (mounted) {
+                                   // ⭐ 存入 AppState 圖庫（原本就有）
+                                   app.addImage(
                                     name: processedFile.uri.pathSegments.last,
                                     path: processedFile.path,
                                   );
+                                }
                                 }
                               } catch (e) {
                                 if (mounted) {
@@ -370,9 +369,11 @@ class _ImageToolPageState extends State<ImageToolPage> {
       album: 'LearningGO',
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ok ? 'Saved to Photos' : 'Save failed')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ok ? 'Saved to Photos' : 'Save failed')),
+      );
+    }
   }
 }
 

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
-import '../widgets/ios_time_picker.dart';
+import '../../../shared/services/app_state.dart';
+import '../../../shared/widgets/ios_time_picker.dart';
 
 class SetGoalSheet extends StatefulWidget {
   const SetGoalSheet({super.key});

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:onnxruntime/onnxruntime.dart';
 import 'package:image/image.dart' as img;
@@ -26,7 +27,7 @@ class OnnxService {
     _initialized = true;
     _currentModel = modelName;
 
-    print("🔵 Loaded model: $modelName");
+    debugPrint("🔵 Loaded model: $modelName");
   }
 
   /// 前處理：回傳模型需要的 224×224 & 原始尺寸

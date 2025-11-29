@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
-import '../utils/app_colors.dart';
-import '../widgets/section_card.dart';
+import '../../../shared/services/app_state.dart';
+import '../../../shared/utils/app_colors.dart';
+import '../../home/widgets/section_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -54,7 +54,6 @@ class _SettingsPageState extends State<SettingsPage> {
     final width = MediaQuery.of(context).size.width;
 
     const blueThumb = Color(0xFF007AFF); // 藍色圓點
-    const blueTrack = Color(0x33007AFF); // 淡藍色背景
     final lightGrayTrack = Colors.grey.shade300; // OFF 狀態淺灰背景
 
     return Drawer(

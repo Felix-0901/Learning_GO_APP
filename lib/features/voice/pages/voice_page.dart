@@ -1,14 +1,14 @@
 // lib/pages/voice_page.dart
-// All UI strings/identifiers in English; comments in 中文。
+// NOTE: All strings/identifiers in English; comments in Chinese.
 
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../services/stt_service.dart';
-import '../services/app_state.dart';
-import '../services/media_service.dart'; // 錄音交給 MediaService
+import '../../../shared/services/stt_service.dart';
+import '../../../shared/services/app_state.dart';
+import '../../../shared/services/media_service.dart'; // 錄音交給 MediaService
 import 'audio_library_page.dart';
 
 class VoicePage extends StatefulWidget {
@@ -95,11 +95,11 @@ class _VoicePageState extends State<VoicePage> {
         if (mounted) setState(() => sttReady = true);
       }
 
-      print('[STT] start file transcribe: ${file.path}');
+      debugPrint('[STT] start file transcribe: ${file.path}');
       final Object raw = await stt.transcribeFile(file.path, lang: 'auto');
       final normalized = _normalizeSTTResult(raw);
-      print(
-        '[STT] got result type=${raw.runtimeType} len=${(raw.toString() ?? '').length}',
+      debugPrint(
+        '[STT] got result type=${raw.runtimeType} len=${raw.toString().length}',
       );
 
       // 寫回全域狀態（即使頁面已離開，Future 仍可完成並更新狀態）
@@ -108,9 +108,11 @@ class _VoicePageState extends State<VoicePage> {
       );
     } catch (e) {
       app.setVoiceText('Transcription failed: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Transcription failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Transcription failed: $e')));
+      }
     } finally {
       app.setVoiceTranscribing(false);
     }

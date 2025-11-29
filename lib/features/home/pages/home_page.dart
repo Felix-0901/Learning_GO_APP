@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/app_state.dart';
+import '../../../shared/services/app_state.dart';
 import '../widgets/section_card.dart';
 import '../widgets/todo_homework_sheets.dart';
 import '../widgets/timer_sheets.dart';
 import '../widgets/ring_progress.dart';
-import '../utils/app_colors.dart';
-import '../utils/format.dart';
+import '../../../shared/utils/app_colors.dart';
+import '../../../shared/utils/format.dart';
 import 'notifications_page.dart';
 
 class HomePage extends StatefulWidget {
