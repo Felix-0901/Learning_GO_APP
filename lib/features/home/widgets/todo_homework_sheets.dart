@@ -1,38 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
-import '../../../shared/utils/format.dart';
-import '../../../shared/widgets/ios_time_picker.dart';
-
-// 共用：欄位圓角（和按鈕一致）
-const double _kFieldRadius = 12;
+import '../state/todo_state.dart';
+import '../state/homework_state.dart';
+import '../../../core/models/todo.dart';
+import '../../../core/models/homework.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/format.dart';
+import '../../../core/widgets/ios_time_picker.dart';
 
 // 共用：產生輸入框樣式（淺灰底、深灰框、同圓角）
 InputDecoration _decoration({
   String? hint,
   EdgeInsetsGeometry? contentPadding,
-}) {
-  final base = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(_kFieldRadius),
-    borderSide: BorderSide(color: Colors.grey[400]!),
-  );
-  final focused = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(_kFieldRadius),
-    borderSide: BorderSide(color: Colors.grey[500]!, width: 1.2),
-  );
-  return InputDecoration(
-    hintText: hint,
-    filled: true,
-    fillColor: Colors.grey[100],
-    isDense: true,
-    contentPadding:
-        contentPadding ??
-        const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-    enabledBorder: base,
-    focusedBorder: focused,
-    border: base,
-  );
-}
+  String? errorText,
+}) => inputDecoration(
+  hint: hint,
+  contentPadding: contentPadding,
+  errorText: errorText,
+);
 
 Widget _dateBox({
   required BuildContext context,
@@ -40,19 +25,18 @@ Widget _dateBox({
   required VoidCallback onTap,
 }) {
   return InkWell(
-    borderRadius: BorderRadius.circular(_kFieldRadius),
+    borderRadius: BorderRadius.circular(kFieldRadius),
     onTap: onTap,
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(_kFieldRadius),
+        borderRadius: BorderRadius.circular(kFieldRadius),
         border: Border.all(color: Colors.grey[400]!),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 顯示已選日期（沿用你的 humanDue）
           Text(humanDue(value)),
           Icon(
             Icons.calendar_today_outlined,
@@ -128,7 +112,7 @@ Widget _colorStrip({
 // ============================
 
 class AddTodoSheet extends StatefulWidget {
-  final Map<String, dynamic>? existing;
+  final Todo? existing;
   const AddTodoSheet({super.key, this.existing});
 
   @override
@@ -146,15 +130,15 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
   void initState() {
     super.initState();
     if (widget.existing != null) {
-      title.text = widget.existing!['title'];
-      desc.text = widget.existing!['desc'] ?? '';
-      due = DateTime.parse(widget.existing!['due']);
+      title.text = widget.existing!.title;
+      desc.text = widget.existing!.desc;
+      due = widget.existing!.due;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppState>();
+    final todoState = context.read<TodoState>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -171,7 +155,6 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
           ),
           const SizedBox(height: 12),
 
-          // Title（獨立標籤 + 矮一點的輸入框）
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -189,7 +172,8 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
                 vertical: 10,
                 horizontal: 12,
               ),
-            ).copyWith(errorText: titleError ? 'Title is required' : null),
+              errorText: titleError ? 'Title is required' : null,
+            ),
             onChanged: (_) {
               if (titleError && title.text.trim().isNotEmpty) {
                 setState(() => titleError = false);
@@ -198,7 +182,6 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
           ),
           const SizedBox(height: 10),
 
-          // Description（較高、可捲動）
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -210,12 +193,11 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
           TextField(
             controller: desc,
             minLines: 4,
-            maxLines: 8, // 超過會在欄位內滾動
+            maxLines: 8,
             decoration: _decoration(hint: 'Add description (optional)...'),
           ),
           const SizedBox(height: 10),
 
-          // Due Date（獨立標籤 + 可點擊灰底框）
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -245,8 +227,7 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
               if (widget.existing != null)
                 TextButton.icon(
                   onPressed: () {
-                    // ✅ 直接刪除（不保留）
-                    app.removeTodo(widget.existing!['id']);
+                    todoState.remove(widget.existing!.id);
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.delete_outline),
@@ -259,7 +240,7 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
               const Spacer(),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF007AFF), // 修改底色
+                  backgroundColor: AppColors.accent,
                 ),
                 onPressed: () {
                   if (title.text.trim().isEmpty) {
@@ -268,13 +249,13 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
                   }
 
                   if (widget.existing == null) {
-                    app.addTodo(title.text, desc.text, due);
+                    todoState.add(title: title.text, desc: desc.text, due: due);
                   } else {
-                    app.updateTodo(
-                      widget.existing!['id'],
-                      title.text,
-                      desc.text,
-                      due,
+                    todoState.update(
+                      id: widget.existing!.id,
+                      title: title.text,
+                      desc: desc.text,
+                      due: due,
                     );
                   }
                   Navigator.pop(context);
@@ -298,7 +279,7 @@ class _AddTodoSheetState extends State<AddTodoSheet> {
 // ============================
 
 class AddHomeworkSheet extends StatefulWidget {
-  final Map<String, dynamic>? existing;
+  final Homework? existing;
   const AddHomeworkSheet({super.key, this.existing});
 
   @override
@@ -329,20 +310,20 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
     super.initState();
     if (widget.existing != null) {
       final e = widget.existing!;
-      title.text = e['title'];
-      content.text = e['content'] ?? '';
-      due = DateTime.parse(e['due']);
-      reminderType = e['reminderType'] ?? 'None';
-      reminderAt = e['reminderAt'] != null
-          ? DateTime.tryParse(e['reminderAt'])
-          : null;
-      color = Color(e['color'] ?? Colors.orange.toARGB32());
+      title.text = e.title;
+      content.text = e.content;
+      due = e.due;
+      reminderType = e.reminderType ?? 'None';
+      reminderAt = e.reminderAt;
+      color = e.color != null
+          ? Color(int.parse(e.color!, radix: 16))
+          : Colors.orange;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppState>();
+    final hwState = context.read<HomeworkState>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -360,7 +341,6 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Title（獨立標籤 + 矮一點的輸入框）
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -378,7 +358,8 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                   vertical: 10,
                   horizontal: 12,
                 ),
-              ).copyWith(errorText: titleError ? 'Title is required' : null),
+                errorText: titleError ? 'Title is required' : null,
+              ),
               onChanged: (_) {
                 if (titleError && title.text.trim().isNotEmpty) {
                   setState(() => titleError = false);
@@ -388,7 +369,6 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
 
             const SizedBox(height: 10),
 
-            // Content（較高、可捲動）
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -457,7 +437,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                         color: Colors.grey,
                       ),
                       iconSize: 24,
-                      borderRadius: BorderRadius.circular(_kFieldRadius),
+                      borderRadius: BorderRadius.circular(kFieldRadius),
                       dropdownColor: Colors.white,
                       elevation: 3,
                       style: const TextStyle(
@@ -546,7 +526,6 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
             ),
             const SizedBox(height: 10),
 
-            // Color（標題對齊 + 一整條色彩圓圈，直接點選，不跳視窗）
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -579,8 +558,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                 if (widget.existing != null)
                   TextButton.icon(
                     onPressed: () {
-                      // ✅ 直接刪除（不保留）
-                      app.removeHomework(widget.existing!['id']);
+                      hwState.remove(widget.existing!.id);
                       Navigator.pop(context);
                     },
                     icon: const Icon(Icons.delete_outline),
@@ -596,7 +574,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                 const Spacer(),
                 FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF007AFF), // 修改底色
+                    backgroundColor: AppColors.accent,
                   ),
                   onPressed: () {
                     if (title.text.trim().isEmpty) {
@@ -604,21 +582,30 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                       return;
                     }
 
-                    final data = {
-                      'title': title.text,
-                      'content': content.text,
-                      'due': due.toIso8601String(),
-                      'reminderType': reminderType,
-                      'reminderAt': reminderAt?.toIso8601String(),
-                      'color': color.toARGB32(),
-                      'id': widget.existing?['id'],
-                      'doneAt': widget.existing?['doneAt'],
-                    };
+                    final colorHex = color.toARGB32()
+                        .toRadixString(16)
+                        .padLeft(8, '0');
 
                     if (widget.existing == null) {
-                      app.addHomework(data);
+                      hwState.add(
+                        title: title.text,
+                        content: content.text,
+                        due: due,
+                        reminderType: reminderType,
+                        reminderAt: reminderAt,
+                        color: colorHex,
+                      );
                     } else {
-                      app.updateHomework(data);
+                      hwState.update(
+                        widget.existing!.copyWith(
+                          title: title.text,
+                          content: content.text,
+                          due: due,
+                          reminderType: reminderType,
+                          reminderAt: reminderAt,
+                          color: colorHex,
+                        ),
+                      );
                     }
                     Navigator.pop(context);
                   },

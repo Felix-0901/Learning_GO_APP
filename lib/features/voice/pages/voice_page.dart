@@ -6,9 +6,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/stt_service.dart';
-import '../../../shared/services/app_state.dart';
-import '../../../shared/services/media_service.dart'; // 錄音交給 MediaService
+import '../../../core/constants/app_colors.dart';
+import '../../../core/services/stt_service.dart';
+import '../../../core/services/media_service.dart';
+import '../../home/state/media_state.dart';
+import '../state/voice_state.dart';
 import 'audio_library_page.dart';
 
 class VoicePage extends StatefulWidget {
@@ -80,13 +82,11 @@ class _VoicePageState extends State<VoicePage> {
   }
 
   /// 以檔案進行轉寫（走 ggml/Whisper/ONNX 等）
-  /// * 改為只寫入 AppState，不用本地 setState 持有文字或轉寫中狀態。
   Future<void> _transcribePickedFile(File file) async {
-    final app = context.read<AppState>();
+    final voice = context.read<VoiceState>();
 
-    // 先在全域狀態標記「清空文字、進入轉寫中」
-    app.setVoiceText('');
-    app.setVoiceTranscribing(true);
+    voice.setVoiceText('');
+    voice.setVoiceTranscribing(true);
 
     try {
       if (!sttReady) {
@@ -102,19 +102,18 @@ class _VoicePageState extends State<VoicePage> {
         '[STT] got result type=${raw.runtimeType} len=${raw.toString().length}',
       );
 
-      // 寫回全域狀態（即使頁面已離開，Future 仍可完成並更新狀態）
-      app.setVoiceText(
+      voice.setVoiceText(
         normalized.isEmpty ? '[No speech detected]' : normalized,
       );
     } catch (e) {
-      app.setVoiceText('Transcription failed: $e');
+      voice.setVoiceText('Transcription failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Transcription failed: $e')));
       }
     } finally {
-      app.setVoiceTranscribing(false);
+      voice.setVoiceTranscribing(false);
     }
   }
 
@@ -124,23 +123,23 @@ class _VoicePageState extends State<VoicePage> {
       final ok = await media.canRecord();
       if (!ok) throw Exception('Microphone permission not granted');
 
-      final path = await media.startRecord(); // 可能回傳 null（例如 iOS session 被占用）
+      final path = await media.startRecord();
       if (!mounted) return;
 
       if (path == null) {
-        context.read<AppState>().setRecording(value: false, path: null);
+        context.read<VoiceState>().setRecording(value: false, path: null);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to start recording')),
         );
-        setState(() {}); // 刷新按鈕外觀
+        setState(() {});
         return;
       }
 
-      context.read<AppState>().setRecording(value: true, path: path);
-      setState(() {}); // 刷新按鈕外觀
+      context.read<VoiceState>().setRecording(value: true, path: path);
+      setState(() {});
     } catch (e) {
       if (!mounted) return;
-      context.read<AppState>().setRecording(value: false, path: null);
+      context.read<VoiceState>().setRecording(value: false, path: null);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to start recording: $e')));
@@ -148,19 +147,19 @@ class _VoicePageState extends State<VoicePage> {
     }
   }
 
-  /// 停止錄音（不做轉寫；保留檔案路徑供使用者 Save 或到 Library 跑 STT）
+  /// 停止錄音
   Future<void> _stopAll() async {
     try {
-      final path = await media.stopRecord(); // 可能為 null
+      final path = await media.stopRecord();
       if (!mounted) return;
 
-      final prev = context.read<AppState>().recordingPath;
-      context.read<AppState>().setRecording(value: false, path: path ?? prev);
+      final prev = context.read<VoiceState>().recordingPath;
+      context.read<VoiceState>().setRecording(value: false, path: path ?? prev);
 
-      setState(() {}); // 刷新按鈕/Save 狀態
+      setState(() {});
     } catch (e) {
       if (!mounted) return;
-      context.read<AppState>().setRecording(value: false, path: null);
+      context.read<VoiceState>().setRecording(value: false, path: null);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to stop recording: $e')));
@@ -168,20 +167,21 @@ class _VoicePageState extends State<VoicePage> {
     }
   }
 
-  /// 將目前錄音檔存進 AppState（不彈提示）
+  /// 將目前錄音檔存進 MediaState
   Future<void> _saveRecording() async {
-    final app = context.read<AppState>();
-    final path = app.recordingPath;
+    final voice = context.read<VoiceState>();
+    final mediaState = context.read<MediaState>();
+    final path = voice.recordingPath;
     if (path == null) return;
 
     final name =
         'Audio ${DateTime.now().toLocal().toString().substring(0, 16)}';
-    app.addAudio(name: name, path: path);
-    app.setRecording(value: false, path: null); // 存完清空暫存
-    setState(() {}); // 刷新 Save 按鈕狀態
+    await mediaState.addAudio(name: name, path: path);
+    voice.setRecording(value: false, path: null);
+    setState(() {});
   }
 
-  /// 上傳本地音檔：清空後直接轉寫（仍保留加入音訊庫的行為）
+  /// 上傳本地音檔
   Future<void> _uploadAudioFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -195,13 +195,12 @@ class _VoicePageState extends State<VoicePage> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ 用 AppState 取得可持久化的狀態
-    final app = context.watch<AppState>();
-    final recording = app.recording;
-    final recordingPath = app.recordingPath;
+    final voice = context.watch<VoiceState>();
+    final recording = voice.recording;
+    final recordingPath = voice.recordingPath;
 
-    final transcribing = app.voiceTranscribing; // 轉寫中（跨頁保留）
-    final displayText = app.voiceText; // 轉寫結果（跨頁保留）
+    final transcribing = voice.voiceTranscribing;
+    final displayText = voice.voiceText;
 
     return Scaffold(
       appBar: AppBar(
@@ -210,13 +209,12 @@ class _VoicePageState extends State<VoicePage> {
           IconButton(
             icon: const Icon(Icons.library_music_outlined),
             onPressed: () async {
-              // 從音訊庫挑選：會傳回 File
               final file = await Navigator.push<File?>(
                 context,
                 MaterialPageRoute(builder: (_) => const AudioLibraryPage()),
               );
               if (file != null) {
-                await _transcribePickedFile(file); // 新一輪：清空再轉（狀態在 AppState）
+                await _transcribePickedFile(file);
               }
             },
           ),
@@ -272,8 +270,8 @@ class _VoicePageState extends State<VoicePage> {
               height: 48,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF007AFF),
-                  side: const BorderSide(color: Color(0xFF007AFF), width: 1.5),
+                  foregroundColor: AppColors.accent,
+                  side: const BorderSide(color: AppColors.accent, width: 1.5),
                   textStyle: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -322,7 +320,7 @@ class _VoicePageState extends State<VoicePage> {
                     child: FilledButton.tonal(
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFD6E6FF),
-                        foregroundColor: const Color(0xFF007AFF),
+                        foregroundColor: AppColors.accent,
                         textStyle: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

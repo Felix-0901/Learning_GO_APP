@@ -1,11 +1,10 @@
 // lib/pages/image_library_page.dart
-// 瀏覽在 MediaService 管理下的「Originals」與「Processed」照片
-// 提供簡易刪除介面（等之後追加播放 / export功能）
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
-import '../../../shared/services/media_service.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../home/state/media_state.dart';
+import '../../../core/services/media_service.dart';
 
 class ImageLibraryPage extends StatefulWidget {
   const ImageLibraryPage({super.key});
@@ -60,7 +59,7 @@ class _ImageLibraryPageState extends State<ImageLibraryPage>
 
   @override
   Widget build(BuildContext context) {
-    context.watch<AppState>();
+    context.watch<MediaState>();
 
     return Scaffold(
       appBar: AppBar(
@@ -72,8 +71,8 @@ class _ImageLibraryPageState extends State<ImageLibraryPage>
         surfaceTintColor: Colors.white,
         bottom: TabBar(
           controller: _tab,
-          labelColor: const Color(0xFF007AFF),
-          indicatorColor: const Color(0xFF007AFF),
+          labelColor: AppColors.accent,
+          indicatorColor: AppColors.accent,
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           tabs: const [
             Tab(text: 'Original'),

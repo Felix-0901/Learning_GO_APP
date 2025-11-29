@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
-import '../../../shared/utils/app_colors.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/models/timer_record.dart';
+import '../../home/state/timer_state.dart';
 import '../../home/widgets/section_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -20,7 +21,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = Provider.of<AppState>(context);
+    final timer = Provider.of<TimerState>(context);
 
     return Scaffold(
       endDrawer: _buildRightMenu(context),
@@ -40,10 +41,10 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: [
-          if (_showToday) _buildTodayTimelineChart(app),
-          if (_showWeek) _buildWeekChart(app),
-          if (_showMonth) _buildMonthChart(app),
-          if (_showDistribution) _buildDistributionTable(app),
+          if (_showToday) _buildTodayTimelineChart(timer),
+          if (_showWeek) _buildWeekChart(timer),
+          if (_showMonth) _buildMonthChart(timer),
+          if (_showDistribution) _buildDistributionTable(timer),
         ],
       ),
     );
@@ -107,16 +108,9 @@ class _SettingsPageState extends State<SettingsPage> {
   // Helpers
   // =========================================================
 
-  String _dateKey(DateTime d) =>
-      "${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-
   double _calcDiffPercent(int current, int prev) {
     if (prev == 0) return current == 0 ? 0 : 100;
     return (current - prev) / prev * 100;
-  }
-
-  int _totalSecondsForDateFromSeconds(AppState app, DateTime date) {
-    return app.todaySeconds(date);
   }
 
   int _parseMinutes(String hhmm) {
@@ -165,23 +159,13 @@ class _SettingsPageState extends State<SettingsPage> {
   // =========================================================
   // 今日 Timeline（中心現在時間 ± 3 小時）
   // =========================================================
-  Widget _buildTodayTimelineChart(AppState app) {
+  Widget _buildTodayTimelineChart(TimerState timer) {
     final now = DateTime.now();
-    final todayStr = _dateKey(now);
-
-    List<Map<String, dynamic>> sessions = [];
-
-    for (final rec in app.timerDaily) {
-      if (rec['date'] == todayStr && rec['sessions'] is List) {
-        sessions = rec['sessions'].cast<Map<String, dynamic>>();
-        break;
-      }
-    }
+    final sessions = timer.sessionsForDate(now);
 
     final nowMins = _nowMinutes();
-    final todaySecs = _totalSecondsForDateFromSeconds(app, now);
-    final yesterdaySecs = _totalSecondsForDateFromSeconds(
-      app,
+    final todaySecs = timer.secondsForDate(now);
+    final yesterdaySecs = timer.secondsForDate(
       now.subtract(const Duration(days: 1)),
     );
     final diffP = _calcDiffPercent(todaySecs, yesterdaySecs);
@@ -288,9 +272,9 @@ class _SettingsPageState extends State<SettingsPage> {
   // =========================================================
 
   // =========================================================
-  // Weekly Chart（不變）
+  // Weekly Chart
   // =========================================================
-  Widget _buildWeekChart(AppState app) {
+  Widget _buildWeekChart(TimerState timer) {
     final now = DateTime.now();
     const weekdayLabel = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -299,18 +283,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
     for (int i = 6; i >= 0; i--) {
       final d = now.subtract(Duration(days: i));
-      rawMinutes.add(app.todaySeconds(d) / 60.0);
+      rawMinutes.add(timer.secondsForDate(d) / 60.0);
       labels.add(weekdayLabel[d.weekday - 1]);
     }
 
     final thisWeekSecs = [
       for (int i = 0; i < 7; i++)
-        app.todaySeconds(now.subtract(Duration(days: i))),
+        timer.secondsForDate(now.subtract(Duration(days: i))),
     ].reduce((a, b) => a + b);
 
     final lastWeekSecs = [
       for (int i = 7; i < 14; i++)
-        app.todaySeconds(now.subtract(Duration(days: i))),
+        timer.secondsForDate(now.subtract(Duration(days: i))),
     ].reduce((a, b) => a + b);
 
     final diffP = _calcDiffPercent(thisWeekSecs, lastWeekSecs);
@@ -451,9 +435,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // =========================================================
-  // 每月圖表（不變）
+  // 每月圖表
   // =========================================================
-  Widget _buildMonthChart(AppState app) {
+  Widget _buildMonthChart(TimerState timer) {
     final now = DateTime.now();
     final y = now.year;
     final m = now.month;
@@ -463,12 +447,12 @@ class _SettingsPageState extends State<SettingsPage> {
     final labels = <String>[];
 
     for (int d = 1; d <= days; d++) {
-      mins.add(app.todaySeconds(DateTime(y, m, d)) / 60.0);
+      mins.add(timer.secondsForDate(DateTime(y, m, d)) / 60.0);
       labels.add(d.toString());
     }
 
     final thisMonthSecs = [
-      for (int d = 1; d <= days; d++) app.todaySeconds(DateTime(y, m, d)),
+      for (int d = 1; d <= days; d++) timer.secondsForDate(DateTime(y, m, d)),
     ].reduce((a, b) => a + b);
 
     // 上個月
@@ -480,7 +464,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final pDays = DateTime(py, pm + 1, 0).day;
 
     final lastMonthSecs = [
-      for (int d = 1; d <= pDays; d++) app.todaySeconds(DateTime(py, pm, d)),
+      for (int d = 1; d <= pDays; d++)
+        timer.secondsForDate(DateTime(py, pm, d)),
     ].reduce((a, b) => a + b);
 
     final diffP = _calcDiffPercent(thisMonthSecs, lastMonthSecs);
@@ -602,20 +587,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // =========================================================
-  // ⭐⭐ Study Time Distribution: 新增報表（含分隔線版）⭐⭐
+  // Study Time Distribution
   // =========================================================
-  Widget _buildDistributionTable(AppState app) {
+  Widget _buildDistributionTable(TimerState timer) {
     final now = DateTime.now();
 
-    // 今日所有紀錄
-    final todayKey = _dateKey(now);
-    List<Map<String, dynamic>> sessions = [];
-
-    for (final rec in app.timerDaily) {
-      if (rec['date'] == todayKey && rec['sessions'] is List) {
-        sessions = rec['sessions'].cast<Map<String, dynamic>>();
-      }
-    }
+    // 今日所有時段
+    final sessions = timer.sessionsForDate(now);
 
     // 四大時段秒數
     int morning = 0;
@@ -624,8 +602,8 @@ class _SettingsPageState extends State<SettingsPage> {
     int midnight = 0;
 
     for (final s in sessions) {
-      final start = _parseMinutes(s['start']);
-      final end = _parseMinutes(s['end']);
+      final start = _parseMinutes(s.start);
+      final end = _parseMinutes(s.end);
       if (end <= start) continue;
 
       for (int m = start; m < end; m++) {
@@ -725,7 +703,7 @@ class _SettingsPageState extends State<SettingsPage> {
 // Timeline Painter（中心 now ± 3hr）
 // =========================================================
 class _DayTimelinePainter extends CustomPainter {
-  final List<Map<String, dynamic>> sessions;
+  final List<StudySession> sessions;
   final int centerMinutes; // 0~1439
 
   _DayTimelinePainter({required this.sessions, required this.centerMinutes});
@@ -779,8 +757,8 @@ class _DayTimelinePainter extends CustomPainter {
     canvas.drawRRect(fullRect, basePaint);
 
     for (final s in sessions) {
-      final sm = _parseMinutes(s['start']);
-      final em = _parseMinutes(s['end']);
+      final sm = _parseMinutes(s.start);
+      final em = _parseMinutes(s.end);
       if (em <= sm) continue;
 
       final segStart = sm < startM ? startM : sm;

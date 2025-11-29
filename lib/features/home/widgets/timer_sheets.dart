@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
-import '../../../shared/widgets/ios_time_picker.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/ios_time_picker.dart';
+import '../state/timer_state.dart';
 
 class SetGoalSheet extends StatefulWidget {
   const SetGoalSheet({super.key});
@@ -11,20 +12,19 @@ class SetGoalSheet extends StatefulWidget {
 }
 
 class _SetGoalSheetState extends State<SetGoalSheet> {
-  late Duration _goal; // ✅ 用 late，等 initState 設定
+  late Duration _goal;
 
   @override
   void initState() {
     super.initState();
-    final app = context.read<AppState>();
-    // ✅ 讀取上次設定的目標秒數，沒有就用 1 小時
-    final last = app.todayGoalSeconds; // int? (秒)
+    final timer = context.read<TimerState>();
+    final last = timer.todayGoalSeconds;
     _goal = Duration(seconds: (last ?? 3600).clamp(0, 24 * 3600));
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppState>();
+    final timer = context.read<TimerState>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -49,11 +49,9 @@ class _SetGoalSheetState extends State<SetGoalSheet> {
 
           const SizedBox(height: 12),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF007AFF),
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
             onPressed: () {
-              app.setGoalSeconds(_goal.inSeconds); // ✅ 存回去
+              timer.setGoalSeconds(_goal.inSeconds);
               Navigator.pop(context);
             },
             child: const Text(
@@ -139,7 +137,7 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppState>();
+    final timer = context.read<TimerState>();
     final showSeconds = mode == 'stopwatch' ? elapsed : countdown;
     final bool canStart = !(mode == 'countdown' && countdown <= 0);
 
@@ -152,7 +150,7 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ───────────────── Header：左 Title、右 Segmented pill ─────────────────
+          // Header：左 Title、右 Segmented pill
           Row(
             children: [
               const Expanded(
@@ -175,12 +173,10 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
           GestureDetector(
             onTap: () async {
               if (mode != 'countdown') return;
-              if (running) return; // 計時途中不可更改
+              if (running) return;
 
-              final app = context.read<AppState>();
-              // 以「上次使用者設定的時間」為初始；若沒有就用目前 countdown
               final initial = Duration(
-                seconds: (app.lastCountdownSeconds ?? countdown).clamp(
+                seconds: (timer.lastCountdownSeconds ?? countdown).clamp(
                   0,
                   24 * 3600,
                 ),
@@ -197,10 +193,7 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
               if (picked != null) {
                 setState(() {
                   countdown = picked.inSeconds;
-                  // ⬇️ 視為「新的使用者設定時間」，覆蓋基準
-                  app.lastCountdownSeconds = countdown;
-                  // 不在此時紀錄任何已經過時間 → 自然「不會累加」
-                  // 同時因為 countdown 可能從 0 變成 >0，會讓 Start 能按
+                  timer.setLastCountdownSeconds(countdown);
                 });
               }
             },
@@ -212,19 +205,16 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
 
           const SizedBox(height: 30),
 
-          // ✅ 三個固定等寬的控制按鈕
+          // 三個固定等寬的控制按鈕
           SizedBox(
-            height: 48, // 統一高度
+            height: 48,
             child: Row(
               children: [
-                // ✅ Start / Pause 按鈕（綠底 ↔ 紅底）
+                // Start / Pause 按鈕
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: running
-                          ? Colors
-                                .red // 紅色（暫停）
-                          : Colors.green, // 綠色（開始）
+                      backgroundColor: running ? Colors.red : Colors.green,
                       foregroundColor: Colors.white,
                       textStyle: const TextStyle(
                         fontSize: 16,
@@ -235,7 +225,7 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
                         ? null
                         : () {
                             if (!running) {
-                              app.startStudySession();
+                              timer.startStudySession();
                               _ticker = Timer.periodic(
                                 const Duration(seconds: 1),
                                 (_) => _tick(),
@@ -250,13 +240,13 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
 
                 const SizedBox(width: 8),
 
-                // ✅ Reset 按鈕（藍框藍字）
+                // Reset 按鈕
                 Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF007AFF),
+                      foregroundColor: AppColors.accent,
                       side: const BorderSide(
-                        color: Color(0xFF007AFF),
+                        color: AppColors.accent,
                         width: 1.5,
                       ),
                       textStyle: const TextStyle(
@@ -265,15 +255,14 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
                       ),
                     ),
                     onPressed: () {
-                      // 🔹 停止計時器
                       _ticker?.cancel();
                       setState(() {
-                        running = false; // 左邊按鈕回到 Start
+                        running = false;
 
                         if (mode == 'stopwatch') {
                           elapsed = 0;
                         } else {
-                          countdown = app.lastCountdownSeconds ?? 1500;
+                          countdown = timer.lastCountdownSeconds ?? 1500;
                         }
                       });
                     },
@@ -283,12 +272,12 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
 
                 const SizedBox(width: 8),
 
-                // ✅ Save 按鈕（淺藍底 + 藍字）
+                // Save 按鈕
                 Expanded(
                   child: FilledButton.tonal(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFD6E6FF), // 淺藍底
-                      foregroundColor: const Color(0xFF007AFF), // 藍色文字
+                      backgroundColor: const Color(0xFFD6E6FF),
+                      foregroundColor: AppColors.accent,
                       textStyle: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -299,19 +288,17 @@ class _TimerModeSheetState extends State<TimerModeSheet> {
                         : () {
                             final raw = mode == 'stopwatch'
                                 ? elapsed
-                                : ((app.lastCountdownSeconds ?? 1500) -
+                                : ((timer.lastCountdownSeconds ?? 1500) -
                                           countdown)
                                       .clamp(0, 24 * 3600);
 
-                            // ⬇️ 取整到分鐘（向下取整）
-                            final gained = ((raw + 30) ~/ 60) * 60; // 四捨五入到分鐘
+                            final gained = ((raw + 30) ~/ 60) * 60;
 
-                            app.endStudySession();
+                            timer.endStudySession();
 
-                            if (gained >= 60) app.addTodaySeconds(gained);
+                            if (gained >= 60) timer.addTodaySeconds(gained);
                             if (mode == 'countdown') {
-                              app.lastCountdownSeconds =
-                                  countdown; // 你原本的行為，依需求保留
+                              timer.setLastCountdownSeconds(countdown);
                             }
                             Navigator.pop(context);
                           },

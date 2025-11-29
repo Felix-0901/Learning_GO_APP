@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/format.dart';
+import '../state/todo_state.dart';
+import '../state/homework_state.dart';
+import '../state/timer_state.dart';
 import '../widgets/section_card.dart';
 import '../widgets/todo_homework_sheets.dart';
 import '../widgets/timer_sheets.dart';
 import '../widgets/ring_progress.dart';
-import '../../../shared/utils/app_colors.dart';
-import '../../../shared/utils/format.dart';
 import 'notifications_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,10 +29,17 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppState>();
-    final (done, total) = app.todayProgress();
-    final today = app.todaySeconds(DateTime.now());
-    final goal = app.todayGoalSeconds;
+    final todoState = context.watch<TodoState>();
+    final hwState = context.watch<HomeworkState>();
+    final timerState = context.watch<TimerState>();
+
+    final done =
+        todoState.todos.where((t) => t.doneAt != null).length +
+        hwState.homeworks.where((h) => h.doneAt != null).length;
+    final total = todoState.todos.length + hwState.homeworks.length;
+
+    final today = timerState.todaySeconds;
+    final goal = timerState.todayGoalSeconds;
     final ratio = (goal == null || goal == 0)
         ? 0.0
         : (today / goal).clamp(0.0, 1.0);
@@ -73,7 +82,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 2) To-Do List（expandChild + 項目左右寬度對齊 header）
+          // 2) To-Do List
           Expanded(
             child: SectionCard(
               title: 'To-Do List',
@@ -95,9 +104,8 @@ class _HomePageState extends State<HomePage> {
               ),
               child: Builder(
                 builder: (_) {
-                  final todos = app.visibleTodos();
+                  final todos = todoState.visibleTodos;
                   if (todos.isEmpty) {
-                    // 空狀態也保持與內容左對齊（而非置中），看起來更一致
                     return const Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
@@ -110,7 +118,7 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   return ListView.builder(
-                    padding: EdgeInsets.zero, // 關鍵：讓清單與 contentPadding 左右齊平
+                    padding: EdgeInsets.zero,
                     physics: const BouncingScrollPhysics(),
                     itemCount: todos.length,
                     itemBuilder: (_, i) {
@@ -120,8 +128,7 @@ class _HomePageState extends State<HomePage> {
                         builder: (ctx, setLocal) {
                           return ListTile(
                             dense: true,
-                            contentPadding:
-                                EdgeInsets.zero, // 關鍵：去掉 ListTile 內建左右內距
+                            contentPadding: EdgeInsets.zero,
                             horizontalTitleGap: 12,
                             leading: Checkbox(
                               value: checked,
@@ -132,20 +139,20 @@ class _HomePageState extends State<HomePage> {
                                   _completeTimer = Timer(
                                     const Duration(seconds: 3),
                                     () {
-                                      app.completeTodo(t['id']);
+                                      todoState.complete(t.id);
                                     },
                                   );
                                 }
                               },
-                              shape: const CircleBorder(), // 👈 改成圓形
-                              activeColor: const Color(0xFF007AFF), // 👈 勾選時為藍色
+                              shape: const CircleBorder(),
+                              activeColor: AppColors.accent,
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ),
 
                             title: Text(
-                              t['title'],
-                              style: TextStyle(fontSize: 16),
+                              t.title,
+                              style: const TextStyle(fontSize: 16),
                             ),
                             onTap: () {
                               showModalBottomSheet(
@@ -164,7 +171,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // 3) Homework（expandChild + 項目左右寬度對齊 header）
+          // 3) Homework
           Expanded(
             child: SectionCard(
               title: 'Homework',
@@ -186,7 +193,7 @@ class _HomePageState extends State<HomePage> {
               ),
               child: Builder(
                 builder: (_) {
-                  final homeworks = app.visibleHomeworks();
+                  final homeworks = hwState.visibleHomeworks;
                   if (homeworks.isEmpty) {
                     return const Align(
                       alignment: Alignment.centerLeft,
@@ -200,7 +207,7 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
                   return ListView.builder(
-                    padding: EdgeInsets.zero, // 關鍵
+                    padding: EdgeInsets.zero,
                     physics: const BouncingScrollPhysics(),
                     itemCount: homeworks.length,
                     itemBuilder: (_, i) {
@@ -210,17 +217,19 @@ class _HomePageState extends State<HomePage> {
                         builder: (ctx, setLocal) {
                           return ListTile(
                             dense: true,
-                            contentPadding: EdgeInsets.zero, // 關鍵
+                            contentPadding: EdgeInsets.zero,
                             horizontalTitleGap: 12,
                             leading: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // 左側色條（與內容左邊界齊平）
                                 Container(
                                   width: 4,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: Color(h['color'] ?? 0xFFFFA000),
+                                    color: Color(
+                                      int.tryParse(h.color ?? '', radix: 16) ??
+                                          0xFFFFA000,
+                                    ),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
@@ -228,8 +237,8 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                             title: Text(
-                              h['title'],
-                              style: TextStyle(fontSize: 16),
+                              h.title,
+                              style: const TextStyle(fontSize: 16),
                             ),
                             trailing: Checkbox(
                               value: checked,
@@ -240,12 +249,12 @@ class _HomePageState extends State<HomePage> {
                                   _completeTimer = Timer(
                                     const Duration(seconds: 3),
                                     () {
-                                      app.completeHomework(h['id']);
+                                      hwState.complete(h.id);
                                     },
                                   );
                                 }
                               },
-                              activeColor: const Color(0xFF007AFF), // 👈 勾選時藍色
+                              activeColor: AppColors.accent,
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
                             ),
@@ -271,7 +280,7 @@ class _HomePageState extends State<HomePage> {
             title: 'Study Timer',
             tint: AppColors.softGray,
             trailing: Text(
-              hhmm(today), // ← 顯示今日已讀時間
+              hhmm(today),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -302,8 +311,8 @@ class _HomePageState extends State<HomePage> {
                           );
                         },
                         style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green, // 背景色
-                          foregroundColor: Colors.white, // 文字顏色
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
                           textStyle: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -320,11 +329,11 @@ class _HomePageState extends State<HomePage> {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.green, // 文字顏色
+                          foregroundColor: Colors.green,
                           side: const BorderSide(
                             color: Colors.green,
                             width: 1.5,
-                          ), // 邊框顏色
+                          ),
                           textStyle: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

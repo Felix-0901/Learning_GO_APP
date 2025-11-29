@@ -2,69 +2,30 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/app_state.dart';
-
-const double _kFieldRadius = 12;
-
-// 共用輸入框樣式（淺灰底、深灰框、同圓角）
-InputDecoration _decoration({
-  String? hint,
-  EdgeInsetsGeometry? contentPadding,
-}) {
-  final base = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(_kFieldRadius),
-    borderSide: BorderSide(color: Colors.grey[400]!),
-  );
-  final focused = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(_kFieldRadius),
-    borderSide: BorderSide(color: Colors.grey[500]!, width: 1.2),
-  );
-  return InputDecoration(
-    hintText: hint,
-    filled: true,
-    fillColor: Colors.grey[100],
-    isDense: true,
-    contentPadding:
-        contentPadding ??
-        const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-    enabledBorder: base,
-    focusedBorder: focused,
-    border: base,
-  );
-}
+import '../../../core/constants/app_colors.dart';
+import '../../../core/models/audio_file.dart';
+import '../../home/state/media_state.dart';
 
 class AudioLibraryPage extends StatelessWidget {
   const AudioLibraryPage({super.key});
 
-  // 解析時間欄位：支援 int(毫秒) / String(ISO) / DateTime
-  DateTime? _parseTime(dynamic v) {
-    if (v == null) return null;
-    if (v is DateTime) return v;
-    if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-    if (v is String) return DateTime.tryParse(v);
-    return null;
-  }
-
-  // 取得排序時間：recordedAt/createdAt > 檔案最後修改時間
-  DateTime _sortTimestamp(Map a) {
-    final byMeta = _parseTime(a['recordedAt']) ?? _parseTime(a['createdAt']);
+  // 取得排序時間
+  DateTime _sortTimestamp(AudioFile a) {
+    final byMeta = a.recordedAt ?? a.createdAt;
     if (byMeta != null) return byMeta;
 
-    final path = a['path'] as String?;
-    if (path != null) {
-      try {
-        return File(path).lastModifiedSync();
-      } catch (_) {}
-    }
+    try {
+      return File(a.path).lastModifiedSync();
+    } catch (_) {}
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppState>();
+    final mediaState = context.watch<MediaState>();
 
     // 依「錄製時間」由新到舊排序
-    final List<Map> audios = List<Map>.from(app.audioFiles);
+    final List<AudioFile> audios = List<AudioFile>.from(mediaState.audioFiles);
     audios.sort((a, b) => _sortTimestamp(b).compareTo(_sortTimestamp(a)));
 
     return Scaffold(
@@ -92,8 +53,7 @@ class AudioLibraryPage extends StatelessWidget {
                 return InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    // 點擊即回傳此檔
-                    Navigator.pop<File>(context, File(a['path']));
+                    Navigator.pop<File>(context, File(a.path));
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -111,7 +71,7 @@ class AudioLibraryPage extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            a['name'] ?? '',
+                            a.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -125,10 +85,7 @@ class AudioLibraryPage extends StatelessWidget {
                         // 重新命名
                         IconButton(
                           tooltip: 'Rename',
-                          icon: const Icon(
-                            Icons.edit,
-                            color: Color(0xFF007AFF),
-                          ),
+                          icon: const Icon(Icons.edit, color: AppColors.accent),
                           iconSize: 25,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
@@ -144,7 +101,7 @@ class AudioLibraryPage extends StatelessWidget {
                               context: context,
                               builder: (ctx) {
                                 final ctrl = TextEditingController(
-                                  text: a['name'],
+                                  text: a.name,
                                 );
                                 return AlertDialog(
                                   backgroundColor: Colors.white,
@@ -179,7 +136,7 @@ class AudioLibraryPage extends StatelessWidget {
                                   ),
                                   content: TextField(
                                     controller: ctrl,
-                                    decoration: _decoration(
+                                    decoration: inputDecoration(
                                       hint: 'Enter new name',
                                     ),
                                   ),
@@ -199,12 +156,12 @@ class AudioLibraryPage extends StatelessWidget {
                                     ),
                                     TextButton(
                                       style: TextButton.styleFrom(
-                                        foregroundColor: Color(0xFF007AFF),
+                                        foregroundColor: AppColors.accent,
                                       ),
                                       onPressed: () {
                                         final newName = ctrl.text.trim();
                                         if (newName.isNotEmpty) {
-                                          app.renameAudio(a['id'], newName);
+                                          mediaState.renameAudio(a.id, newName);
                                         }
                                         Navigator.pop(ctx);
                                       },
@@ -225,7 +182,7 @@ class AudioLibraryPage extends StatelessWidget {
 
                         const SizedBox(width: 6),
 
-                        // 刪除（成功靜默、失敗才提示）
+                        // 刪除
                         IconButton(
                           tooltip: 'Delete',
                           icon: const Icon(
@@ -244,17 +201,17 @@ class AudioLibraryPage extends StatelessWidget {
                           ),
                           onPressed: () async {
                             try {
-                              app.removeAudio(a['id']);
-                              final file = File(a['path']);
+                              mediaState.removeAudio(a.id);
+                              final file = File(a.path);
                               if (await file.exists()) {
                                 await file.delete();
                               }
-                              // 成功：不顯示任何提示
                             } catch (e) {
-                              // 只有失敗才提示
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Delete failed')),
+                                  const SnackBar(
+                                    content: Text('Delete failed'),
+                                  ),
                                 );
                               }
                             }
