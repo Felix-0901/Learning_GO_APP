@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 本地儲存服務
@@ -33,7 +34,9 @@ class StorageService {
     if (s == null || s.isEmpty) return [];
     try {
       return jsonDecode(s) as List<dynamic>;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('⚠️ Storage parse error for key "$key": $e');
+      debugPrint('Stack trace: $stackTrace');
       return [];
     }
   }
@@ -45,7 +48,9 @@ class StorageService {
     if (s == null || s.isEmpty) return {};
     try {
       return jsonDecode(s) as Map<String, dynamic>;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('⚠️ Storage parse error for key "$key": $e');
+      debugPrint('Stack trace: $stackTrace');
       return {};
     }
   }
@@ -97,16 +102,4 @@ class StorageService {
     final sp = await _sp;
     await sp.clear();
   }
-}
-
-// 為了向後相容，保留原本的 KV 類別
-class KV {
-  static Future<void> setJson(String k, Object v) =>
-      StorageService.instance.setJson(k, v);
-
-  static Future<List<dynamic>> getList(String k) =>
-      StorageService.instance.getList(k);
-
-  static Future<Map<String, dynamic>> getMap(String k) =>
-      StorageService.instance.getMap(k);
 }

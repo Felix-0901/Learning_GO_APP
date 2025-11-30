@@ -124,6 +124,10 @@ class HomeworkState extends ChangeNotifier {
 
   /// 刪除作業
   Future<void> remove(String id) async {
+    // 取消該作業的提醒通知
+    final notificationId = IdUtils.hashId('hwr-$id');
+    await NotificationService().cancel(notificationId);
+
     _homeworks.removeWhere((h) => h.id == id);
     await _save();
     notifyListeners();
@@ -140,13 +144,16 @@ class HomeworkState extends ChangeNotifier {
 
   /// 安排作業提醒通知
   Future<void> _scheduleReminderIfNeeded(Homework hw) async {
+    // 先取消該作業的所有舊提醒（使用固定 ID 格式）
+    final notificationId = IdUtils.hashId('hwr-${hw.id}');
+    await NotificationService().cancel(notificationId);
+
+    // 若沒有設定提醒或時間已過，直接返回
     if (hw.reminderAt == null) return;
     if (hw.reminderAt!.isBefore(DateTime.now())) return;
 
     await NotificationService().scheduleAt(
-      id: IdUtils.hashId(
-        'hwr-${hw.id}-${hw.reminderAt!.millisecondsSinceEpoch}',
-      ),
+      id: notificationId,
       title: 'Homework reminder',
       body: hw.title,
       when: hw.reminderAt!,

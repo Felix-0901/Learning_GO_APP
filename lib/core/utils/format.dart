@@ -37,9 +37,3 @@ class FormatUtils {
   /// 判斷日期是否為今天
   static bool isToday(DateTime d) => isSameDay(d, DateTime.now());
 }
-
-// 為了向後相容，保留原本的全域函數
-final dateFmt = FormatUtils.dateFmt;
-final timeFmt = FormatUtils.timeFmt;
-String humanDue(DateTime d) => FormatUtils.humanDue(d);
-String hhmm(int seconds) => FormatUtils.hhmm(seconds);

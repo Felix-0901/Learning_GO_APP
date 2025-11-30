@@ -1,12 +1,14 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../../core/models/timer_record.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/constants/app_constants.dart';
 
 /// 計時器狀態管理
 class TimerState extends ChangeNotifier {
-  static const _timerDailyKey = 'timerDaily';
-  static const _cfgKey = 'cfg';
-  static const _activeSessionKey = 'activeSession';
+  static const _timerDailyKey = AppConstants.timerDailyStorageKey;
+  static const _cfgKey = AppConstants.timerConfigStorageKey;
+  static const _activeSessionKey = AppConstants.activeSessionStorageKey;
 
   List<TimerRecord> _timerDaily = [];
   int? _todayGoalSeconds;
@@ -18,6 +20,9 @@ class TimerState extends ChangeNotifier {
   int _sessionAccumulatedSeconds = 0; // 已累積的秒數（Pause 時累加）
   String? _sessionStartTimeKey; // Session 開始的 "HH:mm"（用於記錄 StudySession）
   int _lastSavedSeconds = 0; // 上次自動儲存時的累積秒數（避免重複儲存）
+
+  // === 自動儲存 Timer ===
+  Timer? _autoSaveTimer;
 
   /// 今日目標秒數
   int? get todayGoalSeconds => _todayGoalSeconds;
@@ -183,9 +188,10 @@ class TimerState extends ChangeNotifier {
     _sessionStartedAt = now;
 
     // 如果是全新的 session，記錄開始時間
-    if (_sessionStartTimeKey == null) {
-      _sessionStartTimeKey = _timeKey(now);
-    }
+    _sessionStartTimeKey ??= _timeKey(now);
+
+    // 啟動自動儲存 Timer
+    _startAutoSaveTimer();
 
     await _saveActiveSession();
     notifyListeners();
@@ -194,6 +200,9 @@ class TimerState extends ChangeNotifier {
   /// 暫停計時（Pause 按鈕）- 立即儲存進度
   Future<void> pauseTimer() async {
     if (_sessionStartedAt == null) return; // 沒在跑
+
+    // 停止自動儲存 Timer
+    _stopAutoSaveTimer();
 
     // 累加這段時間
     final elapsed = DateTime.now().difference(_sessionStartedAt!).inSeconds;
@@ -206,20 +215,37 @@ class TimerState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 啟動自動儲存 Timer
+  void _startAutoSaveTimer() {
+    _stopAutoSaveTimer(); // 先停止既有的
+    _autoSaveTimer = Timer.periodic(
+      AppConstants.autoSaveInterval,
+      (_) => autoSave(),
+    );
+  }
+
+  /// 停止自動儲存 Timer
+  void _stopAutoSaveTimer() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+  }
+
   /// 儲存進度（自動儲存或 Pause 時呼叫）
   Future<void> _saveProgress() async {
     final total = currentSessionSeconds;
     final toSave = total - _lastSavedSeconds;
 
-    if (toSave >= 60) {
-      // 至少 1 分鐘才儲存（四捨五入到分鐘）
-      final rounded = ((toSave + 30) ~/ 60) * 60;
+    if (toSave >= AppConstants.minStudySessionSeconds) {
+      // 至少達到最小時段才儲存（四捨五入到分鐘）
+      final rounded =
+          ((toSave + 30) ~/ AppConstants.studyTimeRoundingSeconds) *
+          AppConstants.studyTimeRoundingSeconds;
       await _addTodaySeconds(rounded);
       _lastSavedSeconds += rounded;
     }
   }
 
-  /// 自動儲存（每 60 秒呼叫一次）
+  /// 自動儲存（由 Timer 定期呼叫）
   Future<void> autoSave() async {
     if (!hasActiveSession) return;
     await _saveProgress();
@@ -229,6 +255,9 @@ class TimerState extends ChangeNotifier {
   /// 結束 Session（Done 按鈕或 Sheet 關閉時）
   Future<void> finishSession() async {
     if (!hasActiveSession) return;
+
+    // 停止自動儲存 Timer
+    _stopAutoSaveTimer();
 
     // 如果還在跑，先暫停
     if (_sessionStartedAt != null) {
@@ -246,15 +275,19 @@ class TimerState extends ChangeNotifier {
     final toSave = total - _lastSavedSeconds;
 
     if (toSave > 0) {
-      // 儲存剩餘的時間（四捨五入到分鐘，但至少 60 秒才算）
-      final rounded = toSave >= 30 ? ((toSave + 30) ~/ 60) * 60 : 0;
+      // 儲存剩餘的時間（四捨五入到分鐘）
+      final rounded = toSave >= 30
+          ? ((toSave + 30) ~/ AppConstants.studyTimeRoundingSeconds) *
+                AppConstants.studyTimeRoundingSeconds
+          : 0;
       if (rounded > 0) {
         await _addTodaySeconds(rounded);
       }
     }
 
-    // 記錄學習時段（如果有開始時間且總時間 >= 60 秒）
-    if (_sessionStartTimeKey != null && total >= 60) {
+    // 記錄學習時段（如果有開始時間且總時間 >= 最小時段）
+    if (_sessionStartTimeKey != null &&
+        total >= AppConstants.minStudySessionSeconds) {
       final session = StudySession(
         start: _sessionStartTimeKey!,
         end: endTimeKey,
@@ -283,6 +316,9 @@ class TimerState extends ChangeNotifier {
 
   /// 取消 Session（不儲存，直接放棄）
   Future<void> cancelSession() async {
+    // 停止自動儲存 Timer
+    _stopAutoSaveTimer();
+
     _sessionStartedAt = null;
     _sessionAccumulatedSeconds = 0;
     _sessionStartTimeKey = null;
@@ -294,4 +330,11 @@ class TimerState extends ChangeNotifier {
 
   /// 取得所有記錄（用於圖表等）
   List<TimerRecord> get allRecords => List.unmodifiable(_timerDaily);
+
+  /// 釋放資源（當 State 被銷毀時呼叫）
+  @override
+  void dispose() {
+    _stopAutoSaveTimer();
+    super.dispose();
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_constants.dart';
 
 /// 應用程式顏色常數
 class AppColors {
@@ -29,9 +30,6 @@ class AppColors {
   static const textHint = Color(0xFFBDBDBD);
 }
 
-/// 共用的輸入框圓角
-const double kFieldRadius = 12;
-
 /// 共用輸入框樣式
 InputDecoration inputDecoration({
   String? hint,
@@ -39,11 +37,11 @@ InputDecoration inputDecoration({
   String? errorText,
 }) {
   final base = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(kFieldRadius),
+    borderRadius: BorderRadius.circular(AppConstants.fieldBorderRadius),
     borderSide: BorderSide(color: Colors.grey[400]!),
   );
   final focused = OutlineInputBorder(
-    borderRadius: BorderRadius.circular(kFieldRadius),
+    borderRadius: BorderRadius.circular(AppConstants.fieldBorderRadius),
     borderSide: BorderSide(color: Colors.grey[500]!, width: 1.2),
   );
   return InputDecoration(

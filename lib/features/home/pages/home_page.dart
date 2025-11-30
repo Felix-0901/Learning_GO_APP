@@ -14,6 +14,7 @@ import '../widgets/ring_progress.dart';
 import '../widgets/todo_list_item.dart';
 import '../widgets/homework_list_item.dart';
 import 'notifications_page.dart';
+import 'task_management_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -70,19 +71,34 @@ class _DailyTaskSection extends StatelessWidget {
         return (done: done, total: total);
       },
       builder: (context, data, _) {
-        return SectionCard(
-          title: 'Daily Task',
-          tint: AppColors.softBlue,
-          trailing: Text(
-            '${data.done} / ${data.total}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          child: LinearProgressIndicator(
-            value: data.total == 0 ? 0 : data.done / data.total,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(8),
-            backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation(Colors.blue),
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TaskManagementPage()),
+            );
+          },
+          child: SectionCard(
+            title: 'Daily Task',
+            tint: AppColors.softBlue,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${data.done} / ${data.total}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+              ],
+            ),
+            child: LinearProgressIndicator(
+              value: data.total == 0 ? 0 : data.done / data.total,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(8),
+              backgroundColor: Colors.grey[300],
+              valueColor: const AlwaysStoppedAnimation(Colors.blue),
+            ),
           ),
         );
       },
@@ -239,14 +255,14 @@ class _StudyTimerSection extends StatelessWidget {
         final center = goal == null
             ? 'No goal'
             : (today >= goal
-                  ? '+${hhmm(today - goal)}'
-                  : '-${hhmm((goal - today).clamp(0, 999999))}');
+                  ? '+${FormatUtils.hhmm(today - goal)}'
+                  : '-${FormatUtils.hhmm((goal - today).clamp(0, 999999))}');
 
         return SectionCard(
           title: 'Study Timer',
           tint: AppColors.softGray,
           trailing: Text(
-            hhmm(today),
+            FormatUtils.hhmm(today),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

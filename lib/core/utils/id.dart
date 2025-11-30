@@ -12,6 +12,3 @@ class IdUtils {
   /// 根據種子產生 hash ID (用於通知 ID 等)
   static int hashId(String seed) => seed.hashCode & 0x7fffffff;
 }
-
-// 為了向後相容，保留原本的全域函數
-String newId() => IdUtils.generate();
