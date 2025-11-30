@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/services.dart';
 
 /// 單例通知服務：負責初始化、權限、立即與排程通知
 class NotificationService {
@@ -75,6 +76,54 @@ class NotificationService {
       ),
     );
     await _fln.show(id, title, body, details, payload: payload);
+  }
+
+  /// 計時器完成通知（帶音效和震動）
+  Future<void> showTimerComplete({
+    required String title,
+    required String body,
+  }) async {
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'timer_channel',
+        'Timer',
+        channelDescription: 'Timer notifications',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        enableVibration: true,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: true, // 播放音效
+        presentBadge: true,
+        // iOS 通知會自動震動（如果系統設定允許）
+      ),
+    );
+    await _fln.show(9999, title, body, details);
+  }
+
+  /// 震動一次（注意：iOS 上這是觸覺反饋，不是真正的震動）
+  Future<void> vibrate() async {
+    // iOS: 觸覺反饋（較輕微）
+    // Android: 標準震動
+    if (Platform.isIOS) {
+      // iOS 使用 notificationOccurred 會有較明顯的反饋
+      await HapticFeedback.heavyImpact();
+    } else {
+      await HapticFeedback.vibrate();
+    }
+  }
+
+  /// 輕震動（用於按鈕反饋等）
+  Future<void> lightVibrate() async {
+    await HapticFeedback.lightImpact();
+  }
+
+  /// 播放系統提示音
+  Future<void> playSystemSound() async {
+    // iOS/Android 都支援的系統音效
+    await SystemSound.play(SystemSoundType.alert);
   }
 
   /// 指定時間排程（本地時區）

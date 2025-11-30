@@ -62,10 +62,11 @@ class _DailyTaskSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Selector2<TodoState, HomeworkState, ({int done, int total})>(
       selector: (_, todoState, hwState) {
+        final now = DateTime.now();
         final done =
-            todoState.todos.where((t) => t.doneAt != null).length +
-            hwState.homeworks.where((h) => h.doneAt != null).length;
-        final total = todoState.todos.length + hwState.homeworks.length;
+            todoState.todayDoneCount(now) + hwState.todayDoneCount(now);
+        final total =
+            todoState.todayTotalCount(now) + hwState.todayTotalCount(now);
         return (done: done, total: total);
       },
       builder: (context, data, _) {
