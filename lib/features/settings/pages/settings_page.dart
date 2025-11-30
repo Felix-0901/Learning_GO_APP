@@ -590,8 +590,6 @@ class _SettingsPageState extends State<SettingsPage> {
   // Study Time Distribution
   // =========================================================
   Widget _buildDistributionTable(TimerState timer) {
-    final now = DateTime.now();
-
     // 取得所有歷史紀錄中的所有 sessions
     final List<StudySession> sessions = [];
 
