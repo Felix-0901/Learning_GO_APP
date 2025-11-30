@@ -255,14 +255,14 @@ class _StudyTimerSection extends StatelessWidget {
         final center = goal == null
             ? 'No goal'
             : (today >= goal
-                  ? '+${hhmm(today - goal)}'
-                  : '-${hhmm((goal - today).clamp(0, 999999))}');
+                  ? '+${FormatUtils.hhmm(today - goal)}'
+                  : '-${FormatUtils.hhmm((goal - today).clamp(0, 999999))}');
 
         return SectionCard(
           title: 'Study Timer',
           tint: AppColors.softGray,
           trailing: Text(
-            hhmm(today),
+            FormatUtils.hhmm(today),
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

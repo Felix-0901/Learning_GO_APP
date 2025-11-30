@@ -5,6 +5,7 @@ import '../state/homework_state.dart';
 import '../../../core/models/todo.dart';
 import '../../../core/models/homework.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/format.dart';
 import '../../../core/widgets/ios_time_picker.dart';
 
@@ -25,19 +26,19 @@ Widget _dateBox({
   required VoidCallback onTap,
 }) {
   return InkWell(
-    borderRadius: BorderRadius.circular(kFieldRadius),
+    borderRadius: BorderRadius.circular(AppConstants.fieldBorderRadius),
     onTap: onTap,
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(kFieldRadius),
+        borderRadius: BorderRadius.circular(AppConstants.fieldBorderRadius),
         border: Border.all(color: Colors.grey[400]!),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(humanDue(value)),
+          Text(FormatUtils.humanDue(value)),
           Icon(
             Icons.calendar_today_outlined,
             size: 18,
@@ -437,7 +438,9 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                         color: Colors.grey,
                       ),
                       iconSize: 24,
-                      borderRadius: BorderRadius.circular(kFieldRadius),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.fieldBorderRadius,
+                      ),
                       dropdownColor: Colors.white,
                       elevation: 3,
                       style: const TextStyle(
@@ -452,7 +455,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                         return reminderOptions.map((e) {
                           final isCustom = e == 'Custom' && reminderAt != null;
                           final label = isCustom
-                              ? 'Custom (${humanDue(reminderAt!)} · ${TimeOfDay.fromDateTime(reminderAt!).format(context)})'
+                              ? 'Custom (${FormatUtils.humanDue(reminderAt!)} · ${TimeOfDay.fromDateTime(reminderAt!).format(context)})'
                               : e;
                           return Align(
                             alignment: Alignment.centerLeft,
@@ -465,7 +468,7 @@ class _AddHomeworkSheetState extends State<AddHomeworkSheet> {
                       items: reminderOptions.map((e) {
                         final isCustom = e == 'Custom' && reminderAt != null;
                         final label = isCustom
-                            ? 'Custom (${humanDue(reminderAt!)} · ${TimeOfDay.fromDateTime(reminderAt!).format(context)})'
+                            ? 'Custom (${FormatUtils.humanDue(reminderAt!)} · ${TimeOfDay.fromDateTime(reminderAt!).format(context)})'
                             : e;
                         return DropdownMenuItem(value: e, child: Text(label));
                       }).toList(),

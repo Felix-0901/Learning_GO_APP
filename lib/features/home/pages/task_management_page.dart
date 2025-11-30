@@ -311,7 +311,7 @@ class _TodoCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  humanDue(todo.due),
+                  FormatUtils.humanDue(todo.due),
                   style: TextStyle(
                     fontSize: 12,
                     color: isOverdue ? Colors.red : Colors.grey,
@@ -323,7 +323,7 @@ class _TodoCard extends StatelessWidget {
                   Icon(Icons.done, size: 14, color: Colors.green),
                   const SizedBox(width: 4),
                   Text(
-                    humanDue(todo.doneAt!),
+                    FormatUtils.humanDue(todo.doneAt!),
                     style: const TextStyle(fontSize: 12, color: Colors.green),
                   ),
                 ],
@@ -479,7 +479,7 @@ class _HomeworkCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    humanDue(homework.due),
+                    FormatUtils.humanDue(homework.due),
                     style: TextStyle(
                       fontSize: 12,
                       color: isOverdue ? Colors.red : Colors.grey,
@@ -491,7 +491,7 @@ class _HomeworkCard extends StatelessWidget {
                     Icon(Icons.done, size: 14, color: Colors.green),
                     const SizedBox(width: 4),
                     Text(
-                      humanDue(homework.doneAt!),
+                      FormatUtils.humanDue(homework.doneAt!),
                       style: const TextStyle(fontSize: 12, color: Colors.green),
                     ),
                   ],
